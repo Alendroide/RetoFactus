@@ -9,20 +9,12 @@ export const siteConfig = {
       href: "/",
     },
     {
-      label: "Docs",
-      href: "/docs",
+      label: "Buscar factura",
+      href: "/facturas",
     },
     {
-      label: "Pricing",
-      href: "/pricing",
-    },
-    {
-      label: "Blog",
-      href: "/blog",
-    },
-    {
-      label: "About",
-      href: "/about",
+      label: "Crear factura",
+      href: "/facturas/crear",
     },
   ],
   navMenuItems: [
@@ -60,10 +52,10 @@ export const siteConfig = {
     },
   ],
   links: {
-    github: "https://github.com/frontio-ai/heroui",
-    twitter: "https://twitter.com/hero_ui",
+    github: "https://github.com/Alendroide",
+    twitter: "https://x.com/alendroideyt",
     docs: "https://heroui.com",
-    discord: "https://discord.gg/9b6yyZKmH4",
+    discord: "https://discordapp.com/users/alendroide",
     sponsor: "https://patreon.com/jrgarciadev",
   },
 };

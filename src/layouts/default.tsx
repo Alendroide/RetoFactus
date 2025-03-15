@@ -8,7 +8,7 @@ export default function DefaultLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative flex flex-col h-screen">
+    <div className="relative flex flex-col h-screen dark" data-theme="dark">
       <Navbar />
       <main className="container mx-auto max-w-7xl px-6 flex-grow pt-16">
         {children}
@@ -17,11 +17,11 @@ export default function DefaultLayout({
         <Link
           isExternal
           className="flex items-center gap-1 text-current"
-          href="https://heroui.com"
+          href="https://github.com/Alendroide"
           title="heroui.com homepage"
         >
-          <span className="text-default-600">Powered by</span>
-          <p className="text-primary">HeroUI</p>
+          <span className="text-default-600">&copy; Created by</span>
+          <p className="text-primary">Pepe</p>
         </Link>
       </footer>
     </div>
