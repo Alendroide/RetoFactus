@@ -10,6 +10,11 @@ html, body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
+    scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+    display: none;
 }
 
 .nav-logo, .nav-name, .nav-link, .nav-github {
@@ -47,5 +52,14 @@ html, body {
 
 .nav-github:hover {
     padding-right: 2vw;
-    transform: scale(1.1);
+}
+
+.fac-card {
+    transition: all;
+    transition-duration: 0.2s;
+}
+
+.fac-card:hover {
+    transform: scale(1.01);
+    background-color: rgb(31 41 55);
 }

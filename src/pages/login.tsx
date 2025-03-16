@@ -5,7 +5,7 @@ import { loginType, loginSchema } from "@/types/login";
 
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
-import apiClient from "@/axios/apiClient";
+import apiClient, { setAuthToken } from "@/axios/apiClient";
 import { addToast } from "@heroui/toast";
 import { useEffect } from "react";
 import { Card, CardBody } from "@heroui/card";
@@ -36,10 +36,13 @@ export default function Login(){
                 title: "Inicio de sesión exitoso",
                 description: "Dirigiendote a facturas",
                 color: "success",
-                className : "dark",
+                classNames : {
+                    base : "dark"
+                },
             })
             const token = response.data.access_token;
             localStorage.setItem('token', token);
+            setAuthToken(token);
 
             await new Promise((resolve) => {
                 setTimeout(() => {
@@ -55,7 +58,9 @@ export default function Login(){
                 title: "Error iniciando sesión",
                 description: "Usuario o contraseña incorrectos",
                 color: "danger",
-                className : "dark"
+                classNames : {
+                    base : "dark"
+                },
             })
             reset();
             return

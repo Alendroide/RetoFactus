@@ -12,13 +12,13 @@ export const Navbar = () => {
       
       {/* Logo */}
       <BrandLink to={"/"} className="flex">
-        <img src="pepe.png" className="w-10 h-10 nav-logo" alt="" />
+        <img src="/pepe.png" className="w-10 h-10 nav-logo" alt="" />
         <h3
           className="my-2 mx-4 nav-name"
           style={{
           color: "white", fontWeight: "500"
         }}>
-          Pepe's bills
+          Pepe's Bills
         </h3>
       </BrandLink>
 
