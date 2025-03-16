@@ -2,7 +2,7 @@ import { Card, CardBody } from "@heroui/card";
 
 export default function FacturaContent({ data: bill }: any) {
   return (
-    <Card className="w-3/4 light">
+    <Card className="light">
       <CardBody>
         <div className="w-11/12 m-auto">
 
@@ -110,9 +110,9 @@ export default function FacturaContent({ data: bill }: any) {
 
             <tbody>
                 {bill.data.items.map((item: any, index: number) => (
-                    <tr className="text-center">
+                    <tr key={index} className="text-center">
                         <td className="border p-2">{index+1}</td>
-                        <td className="border p-2">{parseInt(item.code_reference)}</td>
+                        <td className="border p-2">{item.code_reference}</td>
                         <td className="border p-2">{item.name}</td>
                         <td className="border p-2">{item.quantity}</td>
                         <td className="border p-2">{item.price}</td>
