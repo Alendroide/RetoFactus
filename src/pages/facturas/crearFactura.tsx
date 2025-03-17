@@ -14,7 +14,7 @@ import {
   AutocompleteItem,
 } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { crearFacturaType } from "@/types/factura";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/axios/apiClient";
@@ -26,7 +26,17 @@ export default function CrearFactura() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({ resolver: zodResolver(facturaSchema) });
+  } = useForm({
+    resolver: zodResolver(facturaSchema),
+    defaultValues: {
+      items: [{ code_reference: "", name: "", quantity: 1, price: 0, tax_rate: "", unit_measure_id: 1, standard_code_id: 1, is_excluded: 0, tribute_id: 1, withholding_taxes: [] }]
+    }
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
 
   // Obtener rangos de numeración para el Select
   const getNumberingRanges = async () => {
@@ -65,8 +75,8 @@ export default function CrearFactura() {
     }
   };
 
-  const getMunicipalities = async() => {
-    try{
+  const getMunicipalities = async () => {
+    try {
       const token = localStorage.getItem("token");
       if (!token) {
         window.location.href = "/login";
@@ -78,7 +88,7 @@ export default function CrearFactura() {
       });
       return response.data;
     }
-    catch(error : any){
+    catch (error: any) {
       console.log(error);
       if (error.status == 401) {
         addToast({
@@ -108,7 +118,7 @@ export default function CrearFactura() {
   });
 
   const { data: municipalities } = useQuery({
-    queryKey : ["municipalities"],
+    queryKey: ["municipalities"],
     queryFn: getMunicipalities
   })
 
@@ -378,7 +388,7 @@ export default function CrearFactura() {
                   <SelectItem className="dark" key={"11"}>NUIP*</SelectItem>
                 </Select>
 
-                
+
 
                 <Input
                   {...register("customer.identification")}
@@ -449,7 +459,7 @@ export default function CrearFactura() {
                   popoverContent: "bg-gray-800 text-white"
                 }}
               >
-                {municipalities?.data?.map((municipality : any) => (
+                {municipalities?.data?.map((municipality: any) => (
                   <AutocompleteItem className="dark" key={municipality.id}>{municipality.name}</AutocompleteItem>
                 ))}
               </Autocomplete>
@@ -532,9 +542,87 @@ export default function CrearFactura() {
                   {errors.customer.tribute_id.message}
                 </span>
               )}
-              {errors?.items && (
-                errors.items.message
-              )}
+
+            </div>
+          </div>
+          <div>
+
+            <h2 className="font-bold text-2xl">Items</h2>
+            <Divider className="my-4" />
+
+            <div className="space-y-4">
+              {fields.map((item, index) => (
+                <div key={item.id} className="item-form space-y-4">
+
+                  <div className="flex space-x-6">
+                    <p className="font-semibold my-auto">Item {index + 1}</p>
+                    {index != 0 &&
+                      <Button onPress={() => remove(index)} color="danger" variant="bordered">
+                        Eliminar
+                      </Button>
+                    }
+                  </div>
+
+                  <Controller
+                    name={`items.${index}.code_reference`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Código de referencia"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name={`items.${index}.name`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Nombre del item"
+                      />
+                    )}
+                  />
+                
+                  <Controller
+                    name={`items.${index}.quantity`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Cantidad"
+                        type="number"
+                        value={field.value !== undefined ? String(field.value) : ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    )}
+                  />
+
+                  {/* <Controller
+                    name={`items.${index}.discount_rate`}
+                    control={control}
+                    
+                  /> */}
+
+
+                </div>
+              ))}
+              <Button type="button" onPress={() => append({
+                code_reference: '',
+                name: '',
+                quantity: 1,
+                discount_rate: 0,
+                price: 0,
+                tax_rate: '',
+                unit_measure_id: 1,
+                standard_code_id: 1,
+                is_excluded: 0,
+                tribute_id: 1,
+                withholding_taxes: []
+              })}>
+                Añadir Item
+              </Button>
             </div>
           </div>
           <div className="flex justify-center">
