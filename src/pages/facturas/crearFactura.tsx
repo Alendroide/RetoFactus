@@ -10,6 +10,8 @@ import {
   Textarea,
   addToast,
   TimeInput,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -20,7 +22,6 @@ import { parseDate, parseTime } from "@internationalized/date";
 
 export default function CrearFactura() {
   const {
-    watch,
     control,
     register,
     handleSubmit,
@@ -64,10 +65,52 @@ export default function CrearFactura() {
     }
   };
 
+  const getMunicipalities = async() => {
+    try{
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+      }
+      const response = await apiClient.get("/v1/municipalities", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    }
+    catch(error : any){
+      console.log(error);
+      if (error.status == 401) {
+        addToast({
+          title: "Error",
+          description: "Sesión expirada",
+          color: "warning",
+          classNames: {
+            base: "dark",
+          },
+        });
+
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            console.log("Redirecting now...");
+            resolve(1);
+          }, 1500);
+        });
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    }
+  }
+
   const { data: numbering_ranges } = useQuery({
     queryKey: ["numeric_ranges"],
     queryFn: getNumberingRanges,
   });
+
+  const { data: municipalities } = useQuery({
+    queryKey : ["municipalities"],
+    queryFn: getMunicipalities
+  })
 
   const onSubmit = (data: crearFacturaType) => {
     console.log(data);
@@ -82,8 +125,8 @@ export default function CrearFactura() {
           <div className="flex mb-5">
             <div className="space-y-4 w-1/2 mx-4">
               <h2 className="text-2xl font-bold">Factura</h2>
-              
-              <Divider className="my-4"/>
+
+              <Divider className="my-4" />
 
               <Select
                 {...register("numbering_range_id")}
@@ -226,7 +269,7 @@ export default function CrearFactura() {
                 Periodo de facturación
               </h2>
 
-              <Divider className="my-4"/>
+              <Divider className="my-4" />
 
               <Controller
                 name="billing_period.start_date"
@@ -240,7 +283,7 @@ export default function CrearFactura() {
                   />
                 )}
               />
-              
+
               {errors?.billing_period?.start_date && (
                 <span className="text-red-500">
                   {errors.billing_period.start_date.message}
@@ -251,10 +294,10 @@ export default function CrearFactura() {
                 name="billing_period.start_time"
                 control={control}
                 defaultValue=""
-                render={({field}) => (
+                render={({ field }) => (
                   <TimeInput
                     label="Hora de inicio"
-                    value={field.value ? parseTime(field.value) : null} 
+                    value={field.value ? parseTime(field.value) : null}
                     onChange={(time) => field.onChange(time?.toString())}
                   />
                 )}
@@ -289,10 +332,10 @@ export default function CrearFactura() {
                 name="billing_period.end_time"
                 control={control}
                 defaultValue=""
-                render={({field}) => (
+                render={({ field }) => (
                   <TimeInput
                     label="Hora de finalización"
-                    value={field.value ? parseTime(field.value) : null} 
+                    value={field.value ? parseTime(field.value) : null}
                     onChange={(time) => field.onChange(time?.toString())}
                   />
                 )}
@@ -308,14 +351,42 @@ export default function CrearFactura() {
             <div className="space-y-4 w-1/2 mx-4">
               <h2 className="text-2xl font-bold">Cliente</h2>
 
-              <Divider className="my-4"/>
+              <Divider className="my-4" />
 
-              <Input
-                {...register("customer.identification")}
-                type="number"
-                label="Identificación"
-                isRequired
-              />
+              <div className="grid grid-cols-[1fr_2fr]">
+                <Select
+                  {...register("customer.identification_document_id")}
+                  label="Tipo identificación"
+                  isRequired
+                  classNames={{
+                    base: "dark",
+                    popoverContent: "bg-gray-800 text-white",
+                    trigger: "default-100 text-white border-gray-700",
+                    value: "text-white",
+                  }}
+                >
+                  <SelectItem className="dark" key={"1"}>Registro civil</SelectItem>
+                  <SelectItem className="dark" key={"2"}>Tarjeta de identidad</SelectItem>
+                  <SelectItem className="dark" key={"3"}>Cédula de ciudadanía</SelectItem>
+                  <SelectItem className="dark" key={"4"}>Tarjeta de extranjería</SelectItem>
+                  <SelectItem className="dark" key={"5"}>Cédula de extranjería</SelectItem>
+                  <SelectItem className="dark" key={"6"}>NIT</SelectItem>
+                  <SelectItem className="dark" key={"7"}>Pasaporte</SelectItem>
+                  <SelectItem className="dark" key={"8"}>ID extranjero</SelectItem>
+                  <SelectItem className="dark" key={"9"}>PEP</SelectItem>
+                  <SelectItem className="dark" key={"10"}>NIT Otro país</SelectItem>
+                  <SelectItem className="dark" key={"11"}>NUIP*</SelectItem>
+                </Select>
+
+                
+
+                <Input
+                  {...register("customer.identification")}
+                  type="number"
+                  label="Identificación"
+                  isRequired
+                />
+              </div>
 
               {errors?.customer?.identification && (
                 <span className="text-red-500">
@@ -369,6 +440,20 @@ export default function CrearFactura() {
                 </span>
               )}
 
+              <Autocomplete
+                {...register("customer.municipality_id")}
+                isRequired
+                label="Municipio"
+                classNames={{
+                  base: "dark",
+                  popoverContent: "bg-gray-800 text-white"
+                }}
+              >
+                {municipalities?.data?.map((municipality : any) => (
+                  <AutocompleteItem className="dark" key={municipality.id}>{municipality.name}</AutocompleteItem>
+                ))}
+              </Autocomplete>
+
               <Input
                 {...register("customer.address")}
                 label="Dirección"
@@ -385,7 +470,6 @@ export default function CrearFactura() {
                 {...register("customer.email")}
                 label="E-Mail"
                 isRequired
-                type="email"
               />
 
               {errors?.customer?.email && (
@@ -407,26 +491,19 @@ export default function CrearFactura() {
                 </span>
               )}
 
-              <Input
-                {...register("customer.email")}
-                label="E-Mail"
-                isRequired
-                type="email"
-              />
-
-              {errors?.customer?.email && (
-                <span className="text-red-500">
-                  {errors.customer.email.message}
-                </span>
-              )}
-
               <Select
                 {...register("customer.legal_organization_id")}
                 label="Organización legal"
                 isRequired
+                classNames={{
+                  base: "dark",
+                  popoverContent: "bg-gray-800 text-white",
+                  trigger: "default-100 text-white border-gray-700",
+                  value: "text-white",
+                }}
               >
-                <SelectItem key={"1"}>Persona jurídica</SelectItem>
-                <SelectItem key={"2"}>Persona natural</SelectItem>
+                <SelectItem className="dark" key={"1"}>Persona jurídica</SelectItem>
+                <SelectItem className="dark" key={"2"}>Persona natural</SelectItem>
               </Select>
 
               {errors?.customer?.legal_organization_id && (
@@ -435,6 +512,29 @@ export default function CrearFactura() {
                 </span>
               )}
 
+              <Select
+                {...register("customer.tribute_id")}
+                label="Tributos cliente"
+                isRequired
+                classNames={{
+                  base: "dark",
+                  popoverContent: "bg-gray-800 text-white",
+                  trigger: "default-100 text-white border-gray-700",
+                  value: "text-white",
+                }}
+              >
+                <SelectItem className="dark" key={"21"}>No aplica *</SelectItem>
+                <SelectItem className="dark" key={"18"}>IVA</SelectItem>
+              </Select>
+
+              {errors?.customer?.tribute_id && (
+                <span className="text-red-500">
+                  {errors.customer.tribute_id.message}
+                </span>
+              )}
+              {errors?.items && (
+                errors.items.message
+              )}
             </div>
           </div>
           <div className="flex justify-center">
