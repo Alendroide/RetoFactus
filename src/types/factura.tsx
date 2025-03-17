@@ -9,7 +9,7 @@ export const billingPeriodSchema = z.object({
 
 export const customerSchema = z.object({
     identification : z.string(),
-    dv : z.string(),
+    dv : z.string().nullable(),
     company : z.string().nullable(),
     trade_name : z.string().nullable(),
     names : z.string().min(4),
