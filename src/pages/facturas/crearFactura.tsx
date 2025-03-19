@@ -22,7 +22,6 @@ import { parseDate, parseTime } from "@internationalized/date";
 export default function CrearFactura() {
   const {
     setValue,
-    watch,
     control,
     register,
     handleSubmit,
@@ -208,11 +207,20 @@ export default function CrearFactura() {
 
   const onSubmit = async(data: crearFacturaType) => {
     try{
-      await apiClient.post('v1/bills/validate',{
+      addToast({
+        title : "Creando factura...",
+        description : "Espere mientras se crea su factura",
+        color : "primary",
+        promise : new Promise((resolve) => setTimeout(resolve, 3000)),
+        classNames : {
+          base : "dark"
+        }
+      })
+      const result = await apiClient.post('v1/bills/validate',{
         ...data
       })
-      const reference_code = data.reference_code;
-      window.location.href = `/facturas/${reference_code}`;
+      const number = result.data.data.bill.number;
+      window.location.href = `/facturas/${number}`;
     }
     catch(error : any){
       console.log(error);
@@ -557,7 +565,6 @@ export default function CrearFactura() {
 
               <Select
                 {...register("customer.municipality_id")}
-                isRequired
                 label="Municipio"
                 classNames={{
                   base: "dark",
@@ -567,10 +574,9 @@ export default function CrearFactura() {
                 }}
               >
                 {municipalities?.data?.map((municipality: any) => (
-                  <SelectItem className="dark" key={municipality.id}>{municipality.name}</SelectItem>
+                  <SelectItem className="dark" key={`${municipality.id}`}>{municipality.department - municipality.name}</SelectItem>
                 ))}
               </Select>
-              {watch("customer.municipality_id")}
 
               {errors?.customer?.municipality_id && (
                 <p className="text-red-500">{errors.customer.municipality_id.message}</p>
