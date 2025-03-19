@@ -10,8 +10,7 @@ import {
   Textarea,
   addToast,
   TimeInput,
-  Autocomplete,
-  AutocompleteItem,
+  Checkbox,
 } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
@@ -22,6 +21,8 @@ import { parseDate, parseTime } from "@internationalized/date";
 
 export default function CrearFactura() {
   const {
+    setValue,
+    watch,
     control,
     register,
     handleSubmit,
@@ -29,7 +30,7 @@ export default function CrearFactura() {
   } = useForm({
     resolver: zodResolver(facturaSchema),
     defaultValues: {
-      items: [{ code_reference: "", name: "", quantity: 1, price: 0, tax_rate: "", unit_measure_id: 1, standard_code_id: 1, is_excluded: 0, tribute_id: 1, withholding_taxes: [] }]
+      items: [{ code_reference: "", name: "", quantity: 1, price: 0, tax_rate: "", unit_measure_id: 1, standard_code_id: 0, is_excluded: 0, tribute_id: 0, withholding_taxes: [] }]
     }
   });
 
@@ -112,6 +113,79 @@ export default function CrearFactura() {
     }
   }
 
+  const getUnitMeasures = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+      }
+      const response = await apiClient.get("/v1/measurement-units", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    }
+    catch (error: any) {
+      console.log(error);
+      if (error.status == 401) {
+        addToast({
+          title: "Error",
+          description: "Sesión expirada",
+          color: "warning",
+          classNames: {
+            base: "dark",
+          },
+        });
+
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            console.log("Redirecting now...");
+            resolve(1);
+          }, 1500);
+        });
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+    }
+  }
+
+  const getTributes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/login";
+      }
+      const response = await apiClient.get("/v1/tributes/products?name=", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.status == 401) {
+        addToast({
+          title: "Error",
+          description: "Sesión expirada",
+          color: "warning",
+          classNames: {
+            base: "dark",
+          },
+        });
+
+        await new Promise((resolve) => {
+          setTimeout(() => {
+            console.log("Redirecting now...");
+            resolve(1);
+          }, 1500);
+        });
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      }
+      console.log(error);
+    }
+  };
+
   const { data: numbering_ranges } = useQuery({
     queryKey: ["numeric_ranges"],
     queryFn: getNumberingRanges,
@@ -122,7 +196,35 @@ export default function CrearFactura() {
     queryFn: getMunicipalities
   })
 
-  const onSubmit = (data: crearFacturaType) => {
+  const { data: unit_measures } = useQuery({
+    queryKey: ["unit_measures"],
+    queryFn: getUnitMeasures,
+  });
+
+  const { data: tributes } = useQuery({
+    queryKey: ["tributes"],
+    queryFn: getTributes,
+  });
+
+  const onSubmit = async(data: crearFacturaType) => {
+    try{
+      await apiClient.post('v1/bills/validate',{
+        ...data
+      })
+      const reference_code = data.reference_code;
+      window.location.href = `/facturas/${reference_code}`;
+    }
+    catch(error : any){
+      console.log(error);
+      addToast({
+        title : "Error",
+        description : "No se pudo crear la factura",
+        color : "danger",
+        classNames : {
+          base : "dark"
+        }
+      })
+    }
     console.log(data);
   };
 
@@ -389,7 +491,6 @@ export default function CrearFactura() {
                 </Select>
 
 
-
                 <Input
                   {...register("customer.identification")}
                   type="number"
@@ -397,12 +498,16 @@ export default function CrearFactura() {
                   isRequired
                 />
               </div>
-
-              {errors?.customer?.identification && (
-                <span className="text-red-500">
-                  {errors.customer.identification.message}
-                </span>
-              )}
+              <p>
+                {errors?.customer?.identification_document_id && (
+                  <p className="text-red-500">{errors.customer.identification_document_id.message}</p>
+                )}
+              </p>
+              <p>
+                {errors?.customer?.identification && (
+                  <p className="text-red-500">{errors.customer.identification.message}</p>
+                )}
+              </p>
 
               <Input
                 {...register("customer.dv")}
@@ -450,19 +555,26 @@ export default function CrearFactura() {
                 </span>
               )}
 
-              <Autocomplete
+              <Select
                 {...register("customer.municipality_id")}
                 isRequired
                 label="Municipio"
                 classNames={{
                   base: "dark",
-                  popoverContent: "bg-gray-800 text-white"
+                  popoverContent: "bg-gray-800 text-white",
+                  trigger: "default-100 text-white border-gray-700",
+                  value: "text-white",
                 }}
               >
                 {municipalities?.data?.map((municipality: any) => (
-                  <AutocompleteItem className="dark" key={municipality.id}>{municipality.name}</AutocompleteItem>
+                  <SelectItem className="dark" key={municipality.id}>{municipality.name}</SelectItem>
                 ))}
-              </Autocomplete>
+              </Select>
+              {watch("customer.municipality_id")}
+
+              {errors?.customer?.municipality_id && (
+                <p className="text-red-500">{errors.customer.municipality_id.message}</p>
+              )}
 
               <Input
                 {...register("customer.address")}
@@ -563,28 +675,26 @@ export default function CrearFactura() {
                     }
                   </div>
 
-                  <Controller
-                    name={`items.${index}.code_reference`}
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        label="Código de referencia"
-                      />
-                    )}
+                  <Input
+                    {...register(`items.${index}.code_reference`)}
+                    label="Código de referencia"
+                    isRequired
                   />
 
-                  <Controller
-                    name={`items.${index}.name`}
-                    control={control}
-                    render={({ field }) => (
-                      <Input
-                        {...field}
-                        label="Nombre del item"
-                      />
-                    )}
+                  {errors?.items?.[index]?.code_reference?.message &&
+                    <p className="text-red-500">{errors.items[index].code_reference.message}</p>
+                  }
+
+                  <Input
+                    {...register(`items.${index}.name`)}
+                    label="Nombre del item"
+                    isRequired
                   />
-                
+
+                  {errors?.items?.[index]?.name?.message &&
+                    <p className="text-red-500">{errors.items[index].name.message}</p>
+                  }
+
                   <Controller
                     name={`items.${index}.quantity`}
                     control={control}
@@ -592,6 +702,7 @@ export default function CrearFactura() {
                       <Input
                         {...field}
                         label="Cantidad"
+                        isRequired
                         type="number"
                         value={field.value !== undefined ? String(field.value) : ''}
                         onChange={(e) => field.onChange(Number(e.target.value))}
@@ -599,12 +710,135 @@ export default function CrearFactura() {
                     )}
                   />
 
-                  {/* <Controller
+                  {errors?.items?.[index]?.quantity?.message &&
+                    <p className="text-red-500">{errors.items[index].quantity.message}</p>
+                  }
+
+                  <Controller
                     name={`items.${index}.discount_rate`}
                     control={control}
-                    
-                  /> */}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Descuento del producto"
+                        isRequired
+                        type="number"
+                        value={field.value !== undefined ? String(field.value) : ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        step={'0.01'}
+                      />
+                    )}
+                  />
 
+                  {errors?.items?.[index]?.discount_rate?.message &&
+                    <p className="text-red-500">{errors.items[index].discount_rate.message}</p>
+                  }
+
+                  <Controller
+                    name={`items.${index}.price`}
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        label="Precio del producto"
+                        type="number"
+                        isRequired
+                        value={field.value !== undefined ? String(field.value) : ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        step={'0.01'}
+                      />
+                    )}
+                  />
+
+                  {errors?.items?.[index]?.price?.message &&
+                    <p className="text-red-500">{errors.items[index].price.message}</p>
+                  }
+
+                  <Input
+                    {...register(`items.${index}.tax_rate`)}
+                    label="Impuesto aplicado"
+                    isRequired
+                    step={'0.01'}
+                    type="number"
+                  />
+
+                  {errors?.items?.[index]?.tax_rate?.message &&
+                    <p className="text-red-500">{errors.items[index].tax_rate.message}</p>
+                  }
+
+                  <Select
+                    {...register(`items.${index}.unit_measure_id`)}
+                    label="Unidad de medida"
+                    isRequired
+                    style={{ textTransform: "capitalize" }}
+                    classNames={{
+                      base: "dark",
+                      popoverContent: "bg-gray-800 text-white",
+                      trigger: "default-100 text-white border-gray-700",
+                      value: "text-white",
+                    }}
+                  >
+                    {unit_measures?.data?.map((unit: any) => (
+                      <SelectItem style={{ textTransform: "capitalize" }} className="dark" key={unit.id}>
+                        {unit.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+
+                  {errors?.items?.[index]?.unit_measure_id?.message &&
+                    <p className="text-red-500">{errors.items[index].unit_measure_id.message}</p>
+                  }
+
+                  <Select
+                    {...register(`items.${index}.standard_code_id`)}
+                    label="ID estandar"
+                    isRequired
+                    classNames={{
+                      base: "dark",
+                      popoverContent: "bg-gray-800 text-white",
+                      trigger: "default-100 text-white border-gray-700",
+                      value: "text-white",
+                    }}
+                  >
+                    <SelectItem className="dark" key={1}>Estándar de adopción del contribuyente</SelectItem>
+                    <SelectItem className="dark" key={2}>UNSPSC</SelectItem>
+                    <SelectItem className="dark" key={3}>Partida Arancelaria</SelectItem>
+                    <SelectItem className="dark" key={4}>GTIN</SelectItem>
+                  </Select>
+
+                  {errors?.items?.[index]?.standard_code_id?.message &&
+                    <p className="text-red-500">{errors.items[index].standard_code_id.message}</p>
+                  }
+
+                  <div className="flex space-x-4">
+                    <p>Excluído del IVA</p>
+                    <Checkbox
+                      onChange={(e) => e.target.checked ? setValue(`items.${index}.is_excluded`, 1) : setValue(`items.${index}.is_excluded`, 0)}
+                    />
+                  </div>
+                  {errors?.items?.[index]?.is_excluded?.message &&
+                    <p className="text-red-500">{errors.items[index].is_excluded.message}</p>
+                  }
+
+                  <Select
+                    label="Tributos"
+                    isRequired
+                    {...register(`items.${index}.tribute_id`)}
+                    classNames={{
+                      base: "dark",
+                      popoverContent: "bg-gray-800 text-white",
+                      trigger: "default-100 text-white border-gray-700",
+                      value: "text-white",
+                    }}
+                  >
+                    {tributes?.data?.map((tribute: any) => (
+                      <SelectItem className="dark" key={tribute.id}>{tribute.name}</SelectItem>
+                    ))}
+                  </Select>
+
+                  {errors?.items?.[index]?.tribute_id?.message &&
+                    <p className="text-red-500">{errors.items[index].tribute_id.message}</p>
+                  }
 
                 </div>
               ))}
@@ -618,7 +852,7 @@ export default function CrearFactura() {
                 unit_measure_id: 1,
                 standard_code_id: 1,
                 is_excluded: 0,
-                tribute_id: 1,
+                tribute_id: 0,
                 withholding_taxes: []
               })}>
                 Añadir Item
