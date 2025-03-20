@@ -11,6 +11,8 @@ import {
   addToast,
   TimeInput,
   Checkbox,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
@@ -205,31 +207,31 @@ export default function CrearFactura() {
     queryFn: getTributes,
   });
 
-  const onSubmit = async(data: crearFacturaType) => {
-    try{
+  const onSubmit = async (data: crearFacturaType) => {
+    try {
       addToast({
-        title : "Creando factura...",
-        description : "Espere mientras se crea su factura",
-        color : "primary",
-        promise : new Promise((resolve) => setTimeout(resolve, 3000)),
-        classNames : {
-          base : "dark"
+        title: "Creando factura...",
+        description: "Espere mientras se crea su factura",
+        color: "primary",
+        promise: new Promise((resolve) => setTimeout(resolve, 3000)),
+        classNames: {
+          base: "dark"
         }
       })
-      const result = await apiClient.post('v1/bills/validate',{
+      const result = await apiClient.post('v1/bills/validate', {
         ...data
       })
       const number = result.data.data.bill.number;
       window.location.href = `/facturas/${number}`;
     }
-    catch(error : any){
+    catch (error: any) {
       console.log(error);
       addToast({
-        title : "Error",
-        description : "No se pudo crear la factura",
-        color : "danger",
-        classNames : {
-          base : "dark"
+        title: "Error",
+        description: "No se pudo crear la factura",
+        color: "danger",
+        classNames: {
+          base: "dark"
         }
       })
     }
@@ -563,20 +565,26 @@ export default function CrearFactura() {
                 </span>
               )}
 
-              <Select
-                {...register("customer.municipality_id")}
-                label="Municipio"
-                classNames={{
-                  base: "dark",
-                  popoverContent: "bg-gray-800 text-white",
-                  trigger: "default-100 text-white border-gray-700",
-                  value: "text-white",
-                }}
-              >
-                {municipalities?.data?.map((municipality: any) => (
-                  <SelectItem className="dark" key={`${municipality.id}`}>{municipality.department - municipality.name}</SelectItem>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="customer.municipality_id"
+                render={({ field }) => (
+                  <Autocomplete
+                    {...field}
+                    label="Municipio"
+                    classNames={{
+                      base: "dark",
+                      popoverContent: "bg-gray-800 text-white",
+                    }}
+                    onSelectionChange={(key) => field.onChange(key)}
+                    selectedKey={field.value}
+                  >
+                    {municipalities?.data?.map((municipality: any) => (
+                      <AutocompleteItem className="dark" key={`${municipality.id}`}>{`${municipality.department} - ${municipality.name}`}</AutocompleteItem>
+                    ))}
+                  </Autocomplete>
+                )}
+              />
 
               {errors?.customer?.municipality_id && (
                 <p className="text-red-500">{errors.customer.municipality_id.message}</p>
