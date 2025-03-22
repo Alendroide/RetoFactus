@@ -30,6 +30,15 @@ export default function Login(){
             password : data.password
         };
         try{
+            addToast({
+                title: "Iniciando sesión",
+                description : "Espera un momento por favor...",
+                color : "primary",
+                promise: new Promise((resolve) => setTimeout(resolve, 3000)),
+                classNames : {
+                    base : "dark"
+                }
+            })
             const response = await apiClient.post("/oauth/token", body);
 
             addToast({
